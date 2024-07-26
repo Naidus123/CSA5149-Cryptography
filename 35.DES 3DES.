@@ -1,0 +1,111 @@
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+#include <stdio.h>
+#include <string.h>
+
+#define BLOCK_SIZE 8   // Block size for 3DES
+#define KEY_SIZE 24    // Key size for 3DES (3 keys of 8 bytes each)
+#define IV_SIZE 8      // Initialization Vector size for 3DES
+
+// Error handling function
+void handleErrors() {
+    fprintf(stderr, "An error occurred\n");
+    ERR_print_errors_fp(stderr);
+    exit(EXIT_FAILURE);
+}
+
+// Function to encrypt data using 3DES in CBC mode
+int encrypt(unsigned char *plaintext, int plaintext_len, unsigned char *key, unsigned char *iv, unsigned char *ciphertext) {
+    EVP_CIPHER_CTX *ctx;
+
+    int len;
+    int ciphertext_len;
+
+    // Create and initialize the context
+    if (!(ctx = EVP_CIPHER_CTX_new())) handleErrors();
+
+    // Initialize the encryption operation with 3DES CBC
+    if (1 != EVP_EncryptInit_ex(ctx, EVP_des_ede3_cbc(), NULL, key, iv)) handleErrors();
+
+    // Provide the message to be encrypted, and obtain the encrypted output
+    if (1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len)) handleErrors();
+    ciphertext_len = len;
+
+    // Finalize the encryption
+    if (1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len)) handleErrors();
+    ciphertext_len += len;
+
+    // Clean up
+    EVP_CIPHER_CTX_free(ctx);
+
+    return ciphertext_len;
+}
+
+// Function to decrypt data using 3DES in CBC mode
+int decrypt(unsigned char *ciphertext, int ciphertext_len, unsigned char *key, unsigned char *iv, unsigned char *plaintext) {
+    EVP_CIPHER_CTX *ctx;
+
+    int len;
+    int plaintext_len;
+
+    // Create and initialize the context
+    if (!(ctx = EVP_CIPHER_CTX_new())) handleErrors();
+
+    // Initialize the decryption operation with 3DES CBC
+    if (1 != EVP_DecryptInit_ex(ctx, EVP_des_ede3_cbc(), NULL, key, iv)) handleErrors();
+
+    // Provide the message to be decrypted, and obtain the plaintext output
+    if (1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len)) handleErrors();
+    plaintext_len = len;
+
+    // Finalize the decryption
+    if (1 != EVP_DecryptFinal_ex(ctx, plaintext + len, &len)) handleErrors();
+    plaintext_len += len;
+
+    // Clean up
+    EVP_CIPHER_CTX_free(ctx);
+
+    return plaintext_len;
+}
+
+int main() {
+    // Example plaintext
+    unsigned char plaintext[] = "This is a secret message.";
+    unsigned char ciphertext[128];
+    unsigned char decryptedtext[128];
+    int decryptedtext_len, ciphertext_len;
+
+    // Key and IV setup (example keys and IV, should be securely generated in real applications)
+    unsigned char key[KEY_SIZE];
+    unsigned char iv[IV_SIZE];
+
+    // Generate random key and IV
+    if (!RAND_bytes(key, KEY_SIZE) || !RAND_bytes(iv, IV_SIZE)) {
+        fprintf(stderr, "Error generating random key or IV.\n");
+        return EXIT_FAILURE;
+    }
+
+    // Print the plaintext
+    printf("Plaintext: %s\n", plaintext);
+
+    // Encrypt the plaintext
+    ciphertext_len = encrypt(plaintext, strlen((char *)plaintext), key, iv, ciphertext);
+
+    // Print the ciphertext in hex format
+    printf("Ciphertext (hex): ");
+    for (int i = 0; i < ciphertext_len; i++) {
+        printf("%02X", ciphertext[i]);
+    }
+    printf("\n");
+
+    // Decrypt the ciphertext
+    decryptedtext_len = decrypt(ciphertext, ciphertext_len, key, iv, decryptedtext);
+
+    // Add a null terminator to the decrypted text
+    decryptedtext[decryptedtext_len] = '\0';
+
+    // Print the decrypted text
+    printf("Decrypted text: %s\n", decryptedtext);
+
+    return 0;
+}
