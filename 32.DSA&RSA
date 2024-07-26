@@ -1,0 +1,63 @@
+#include <stdio.h>
+#include <openssl/rsa.h>
+#include <openssl/dsa.h>
+#include <openssl/pem.h>
+#include <openssl/err.h>
+#include <string.h>
+
+#define MESSAGE "This is a test message."
+
+void print_hex(const char *title, const unsigned char *data, size_t len) {
+    printf("%s:", title);
+    for (size_t i = 0; i < len; i++) {
+        printf(" %02x", data[i]);
+    }
+    printf("\n");
+}
+
+int main() {
+    unsigned char *message = (unsigned char *)MESSAGE;
+    size_t message_len = strlen(MESSAGE);
+
+    // Initialize OpenSSL error strings
+    ERR_load_crypto_strings();
+
+    // DSA Example
+    DSA *dsa = DSA_new();
+    DSA_generate_parameters_ex(dsa, 1024, NULL, 0, NULL, NULL, NULL);
+    DSA_generate_key(dsa);
+
+    unsigned char dsa_sig[DSA_size(dsa)];
+    unsigned int dsa_sig_len;
+    DSA_sign(0, message, message_len, dsa_sig, &dsa_sig_len, dsa);
+
+    print_hex("DSA Signature 1", dsa_sig, dsa_sig_len);
+
+    DSA_sign(0, message, message_len, dsa_sig, &dsa_sig_len, dsa);
+    print_hex("DSA Signature 2", dsa_sig, dsa_sig_len);
+
+    DSA_free(dsa);
+
+    // RSA Example
+    RSA *rsa = RSA_new();
+    BIGNUM *bn = BN_new();
+    BN_set_word(bn, RSA_F4);
+    RSA_generate_key_ex(rsa, 2048, bn, NULL);
+
+    unsigned char rsa_sig[RSA_size(rsa)];
+    unsigned int rsa_sig_len;
+    RSA_sign(NID_sha256, message, message_len, rsa_sig, &rsa_sig_len, rsa);
+
+    print_hex("RSA Signature 1", rsa_sig, rsa_sig_len);
+
+    RSA_sign(NID_sha256, message, message_len, rsa_sig, &rsa_sig_len, rsa);
+    print_hex("RSA Signature 2", rsa_sig, rsa_sig_len);
+
+    RSA_free(rsa);
+    BN_free(bn);
+
+    // Cleanup OpenSSL
+    ERR_free_strings();
+
+    return 0;
+}
