@@ -1,0 +1,42 @@
+#include <openssl/des.h>
+#include <stdio.h>
+#include <string.h>
+
+// Function to handle errors
+void handleErrors() {
+    fprintf(stderr, "An error occurred\n");
+    exit(1);
+}
+
+int main() {
+    // 64-bit block size (8 bytes)
+    DES_cblock key = {0x13, 0x34, 0x57, 0x79, 0x9B, 0xBC, 0xDF, 0xF1}; // Example key
+    DES_cblock input = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF}; // Example plaintext
+
+    DES_key_schedule schedule;
+    if (DES_set_key_checked(&key, &schedule) != 0) {
+        handleErrors();
+    }
+
+    // Encryption
+    DES_cblock ciphertext;
+    DES_ecb_encrypt(&input, &ciphertext, &schedule, DES_ENCRYPT);
+
+    printf("Ciphertext: ");
+    for (int i = 0; i < sizeof(ciphertext); i++) {
+        printf("%02X ", ciphertext[i]);
+    }
+    printf("\n");
+
+    // Decryption
+    DES_cblock decrypted;
+    DES_ecb_encrypt(&ciphertext, &decrypted, &schedule, DES_DECRYPT);
+
+    printf("Decrypted: ");
+    for (int i = 0; i < sizeof(decrypted); i++) {
+        printf("%02X ", decrypted[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
