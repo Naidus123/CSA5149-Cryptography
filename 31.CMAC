@@ -1,0 +1,54 @@
+#include <stdint.h>
+#include <string.h>
+#include <stdio.h>
+#define BLOCK_SIZE 16 
+#define R128 0x87      
+void block_cipher_encrypt(const uint8_t* input, uint8_t* output) {
+    memcpy(output, input, BLOCK_SIZE);
+}
+void left_shift_and_xor(const uint8_t* input, uint8_t* output) {
+    uint8_t carry = 0;
+    for (int i = BLOCK_SIZE - 1; i >= 0; i--) {
+        uint8_t next_carry = (input[i] >> 7) & 1;
+        output[i] = (input[i] << 1) | carry;
+        carry = next_carry;
+    }
+    if (carry) {
+        output[0] ^= R128;
+    }
+}
+
+void generate_cmac_subkeys(const uint8_t* key, uint8_t* K1, uint8_t* K2) {
+    uint8_t L[BLOCK_SIZE] = {0};
+    uint8_t zero_block[BLOCK_SIZE] = {0};
+
+  
+    block_cipher_encrypt(zero_block, L);
+
+
+    left_shift_and_xor(L, K1);
+
+  
+    left_shift_and_xor(K1, K2);
+}
+
+int main() {
+    uint8_t key[BLOCK_SIZE] = {0}; 
+    uint8_t K1[BLOCK_SIZE] = {0};
+    uint8_t K2[BLOCK_SIZE] = {0};
+
+    generate_cmac_subkeys(key, K1, K2);
+
+    printf("K1: ");
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        printf("%02X ", K1[i]);
+    }
+    printf("\n");
+    printf("K2: ");
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        printf("%02X ", K2[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
