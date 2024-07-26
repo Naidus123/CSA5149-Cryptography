@@ -1,0 +1,84 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+// Function to compute the Greatest Common Divisor (GCD)
+int gcd(int a, int b) {
+    while (b != 0) {
+        int t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
+}
+
+// Function to compute the modular multiplicative inverse of 'a' under modulo 'm'
+int mod_inverse(int a, int m) {
+    a = a % m;
+    for (int x = 1; x < m; x++) {
+        if ((a * x) % m == 0) {
+            return x;
+        }
+    }
+    return -1;
+}
+
+// Function to encrypt a single character
+char affine_encrypt_char(char p, int a, int b) {
+    if (!isalpha(p)) return p;
+    int is_lower = islower(p);
+    p = toupper(p) - 'A';
+    return ((a * p + b) % 26) + (is_lower ? 'a' : 'A');
+}
+
+// Function to decrypt a single character
+char affine_decrypt_char(char c, int a, int b) {
+    if (!isalpha(c)) return c;
+    int is_lower = islower(c);
+    c = toupper(c) - 'A';
+    int a_inv = mod_inverse(a, 26);
+    if (a_inv == -1) {
+        fprintf(stderr, "Multiplicative inverse does not exist, cannot decrypt.\n");
+        exit(EXIT_FAILURE);
+    }
+    return ((a_inv * (c - b + 26)) % 26) + (is_lower ? 'a' : 'A');
+}
+
+// Function to encrypt a message using the affine cipher
+void affine_encrypt(char *message, int a, int b) {
+    for (int i = 0; message[i] != '\0'; i++) {
+        message[i] = affine_encrypt_char(message[i], a, b);
+    }
+}
+
+// Function to decrypt a message using the affine cipher
+void affine_decrypt(char *message, int a, int b) {
+    for (int i = 0; message[i] != '\0'; i++) {
+        message[i] = affine_decrypt_char(message[i], a, b);
+    }
+}
+
+int main() {
+    // Ensure 'a' and 26 are coprime
+    int a = 5;  // Example value for 'a'
+    int b = 8;  // Example value for 'b'
+    if (gcd(a, 26) != 1) {
+        fprintf(stderr, "Invalid value for 'a': %d is not coprime with 26.\n", a);
+        return EXIT_FAILURE;
+    }
+
+    // Example plaintext
+    char message[] = "Affine Cipher Example";
+
+    printf("Original message: %s\n", message);
+
+    // Encrypt the message
+    affine_encrypt(message, a, b);
+    printf("Encrypted message: %s\n", message);
+
+    // Decrypt the message
+    affine_decrypt(message, a, b);
+    printf("Decrypted message: %s\n", message);
+
+    return 0;
+}
